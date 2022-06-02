@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,6 +8,7 @@ import {
   SafeAreaView,
   FlatList,
 } from "react-native";
+import CheckBox from "react-native-check-box";
 
 import { downloadAsync, documentDirectory } from "expo-file-system";
 import { isAvailableAsync, shareAsync } from "expo-sharing";
@@ -28,16 +30,26 @@ const productos = [
 ];
 
 const ShareApp = () => {
-  const sharedImg = async (img, name) => {
+  const [prodSelected, setProdSelected] = useState(null);
+  const sharedImg = async () => {
+    const { image, name } = prodSelected;
+    if (!image) {
+      alert(`Selecciones un producto`);
+      return;
+    }
     if (!(await isAvailableAsync())) {
       alert(`La plataforma no soporta compartir`);
       return;
     }
-    const uri = await downloadAsync(img, `${documentDirectory}${name}.jpg`);
+    const uri = await downloadAsync(image, `${documentDirectory}${name}.jpg`);
     await shareAsync(uri.uri, {
       mimeType: "image/jpeg",
       dialogTitle: "Compartir producto",
     });
+  };
+  const selectedProduct = (id) => {
+    const item = productos.find((item) => item.id === id);
+    setProdSelected(item);
   };
   const Item = ({ id, image, name, price, description }) => (
     <View style={styles.item} key={`item_${id}`}>
@@ -51,12 +63,14 @@ const ShareApp = () => {
       <Text style={styles.price}>{price}</Text>
       <Text style={styles.instructions}>{description}</Text>
 
-      <TouchableOpacity
-        onPress={() => sharedImg(image, name)}
-        style={styles.button}
-      >
-        <Text style={styles.buttonText}>Compartir</Text>
-      </TouchableOpacity>
+      <CheckBox
+        style={{ flex: 1, padding: 11, fontSize: 16 }}
+        onClick={() => {
+          selectedProduct(id);
+        }}
+        isChecked={prodSelected && prodSelected.id === id}
+        rightText={"Selecionar"}
+      />
     </View>
   );
   const renderItem = ({ item }) => <Item {...item} />;
@@ -69,6 +83,14 @@ const ShareApp = () => {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
         />
+        {prodSelected && (
+          <TouchableOpacity
+            onPress={() => sharedImg()}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>Compartir</Text>
+          </TouchableOpacity>
+        )}
       </SafeAreaView>
     </View>
   );
